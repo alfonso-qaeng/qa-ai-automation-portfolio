@@ -18,6 +18,9 @@ playwright-report/
 # Build output
 dist/
 
+# AI-generated reports
+reports/
+
 # OS & editor
 .DS_Store
 Thumbs.db
