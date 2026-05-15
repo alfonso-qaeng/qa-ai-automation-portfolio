@@ -1,3 +1,4 @@
-// Page Object Models — export from here for clean @pages/* imports
 export * from './LoginPage';
-export * from './InventoryPage';
+export * from './ProductsPage';
+export * from './CartPage';
+export * from './CheckoutPage';
