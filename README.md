@@ -93,10 +93,45 @@ The standout piece. An autonomous agent that reads a user story and produces a *
 
 The agent calls `claude-sonnet-4-20250514` with a system prompt tuned for senior QA thinking: exhaustive scenario generation, security-first risk analysis, and ruthless AC gap detection.
 
-### Usage
+The agent runs in two modes depending on whether `ANTHROPIC_API_KEY` is configured.
+
+### Claude Code mode — free, no API key needed
+
+Run without an API key and the agent prints a ready-to-paste prompt for Claude Code:
 
 ```bash
-# Built-in demo story — works out of the box with no arguments
+npm run agent:story
+# or with your own story:
+npm run agent:story -- --story "As a user, I want to reset my password via email"
+```
+
+Output:
+
+```
+🤖  AI Agent Mode: Claude Code
+──────────────────────────────────────────────────────────────
+No ANTHROPIC_API_KEY detected. To analyze this story, open
+Claude Code and run the following prompt:
+
+──────────────────────────────────────────────────────────────
+Analyze this user story and generate Playwright test cases
+following the existing POM structure in /pages and /tests:
+
+As a registered user, I want to reset my password via email…
+──────────────────────────────────────────────────────────────
+
+Alternatively, add ANTHROPIC_API_KEY to your .env to run
+the agent automatically with npm run agent:story
+```
+
+### Automatic mode — requires Anthropic API key
+
+Set `ANTHROPIC_API_KEY` in `.env` and the agent calls Claude directly,
+displays the full formatted analysis in the terminal, and saves a JSON
+report to `reports/ai-analysis/`.
+
+```bash
+# Built-in demo story (password reset) — works out of the box
 npm run agent:story
 
 # Analyze an inline story

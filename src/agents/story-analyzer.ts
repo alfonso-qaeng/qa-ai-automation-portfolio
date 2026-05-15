@@ -242,12 +242,24 @@ function saveReport(story: string, analysis: StoryAnalysis, durationMs: number):
 
 async function main(): Promise<void> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('❌  ANTHROPIC_API_KEY is not set. Add it to your .env file.');
-    process.exit(1);
-  }
-
   const story = readStory();
+
+  // ── Manual mode: no API key configured ──────────────────────────────────────
+  if (!apiKey) {
+    const line = '─'.repeat(62);
+    console.log(`\n${C.bold}${C.magenta}🤖  AI Agent Mode: Claude Code${C.reset}`);
+    console.log(C.dim + line + C.reset);
+    console.log(`${C.yellow}No ANTHROPIC_API_KEY detected.${C.reset} To analyze this story, open`);
+    console.log(`${C.bold}Claude Code${C.reset} and run the following prompt:\n`);
+    console.log(`${C.dim}${line}${C.reset}`);
+    console.log(`${C.cyan}Analyze this user story and generate Playwright test cases`);
+    console.log(`following the existing POM structure in /pages and /tests:\n`);
+    console.log(story + C.reset);
+    console.log(`${C.dim}${line}${C.reset}`);
+    console.log(`\n${C.dim}Alternatively, add ANTHROPIC_API_KEY to your .env to run`);
+    console.log(`the agent automatically with npm run agent:story${C.reset}\n`);
+    return; // exit cleanly with code 0
+  }
   const client = new Anthropic({ apiKey });
 
   console.log(`${C.bold}🔍  Analyzing story with ${MODEL}…${C.reset}`);
