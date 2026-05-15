@@ -24,11 +24,11 @@ export default defineConfig({
       outputFolder: 'allure-results',
       suiteTitle: true,
     }],
-    ['html', { outputFolder: 'test-results/html', open: 'never' }],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
 
   use: {
-    baseURL: process.env.BASE_URL ?? 'https://www.saucedemo.com',
+    baseURL: process.env.BASE_URL || 'https://www.saucedemo.com',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -68,7 +68,7 @@ export default defineConfig({
       name: 'api',
       testMatch: '**/api/**/*.spec.ts',
       use: {
-        baseURL: process.env.API_BASE_URL ?? 'https://reqres.in',
+        baseURL: process.env.API_BASE_URL || 'https://reqres.in',
       },
     },
 
