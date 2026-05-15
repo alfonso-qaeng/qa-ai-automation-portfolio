@@ -35,10 +35,10 @@ export default defineConfig({
   },
 
   projects: [
-    // Auth setup — runs before e2e tests
+    // Global auth setup — runs once before e2e tests
     {
       name: 'setup',
-      testMatch: '**/auth.setup.ts',
+      testMatch: '**/global.setup.ts',
     },
 
     // E2E — Chromium with reused auth state
