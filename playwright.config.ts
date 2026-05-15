@@ -69,6 +69,9 @@ export default defineConfig({
       testMatch: '**/api/**/*.spec.ts',
       use: {
         baseURL: process.env.API_BASE_URL || 'https://reqres.in',
+        extraHTTPHeaders: {
+          'x-api-key': process.env.REQRES_API_KEY || '',
+        },
       },
     },
 
