@@ -1,0 +1,160 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * *'   # 08:00 UTC — daily regression run
+  workflow_dispatch:        # manual trigger from GitHub UI
+
+# Cancel in-progress runs on feature branches to save CI minutes.
+# Main branch runs always complete so Allure history is never broken.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # Test matrix — chromium E2E, firefox E2E, and API run in parallel
+  # ────────────────────────────────────────────────────────────────────────────
+  test:
+    name: ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false    # finish all legs even when one fails
+      matrix:
+        include:
+          - project: e2e
+            browser:  chromium
+            artifact: e2e-chromium
+          - project: e2e:firefox
+            browser:  firefox
+            artifact: e2e-firefox
+          - project: api
+            browser:  ''        # API tests need no browser binary
+            artifact: api
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm            # caches ~/.npm between runs
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Only download the browser binary this matrix leg actually needs.
+      # The API leg skips this step entirely.
+      - name: Install Playwright browser (${{ matrix.browser }})
+        if: matrix.browser != ''
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Type check
+        run: npm run typecheck
+
+      # Quotes are required so the shell handles the colon in "e2e:firefox".
+      # Playwright resolves the "setup" dependency automatically for E2E legs
+      # (runs global.setup.ts → logs in → saves .auth/user.json).
+      - name: Run tests — ${{ matrix.project }}
+        run: npx playwright test --project="${{ matrix.project }}"
+        env:
+          CI: true
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BASE_URL:          ${{ secrets.BASE_URL }}
+          API_BASE_URL:      ${{ secrets.API_BASE_URL }}
+
+      # Always upload Allure results so the report job can merge all three legs.
+      # if-no-files-found: ignore handles cases where tests fail before any
+      # results are written (e.g. typecheck error caught late).
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ matrix.artifact }}
+          path: allure-results/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      # Screenshots, videos, and HTML report only on failure — keeps artifact
+      # storage clean on green runs.
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts-${{ matrix.artifact }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Merge all Allure results and deploy the unified report to GitHub Pages.
+  # Only runs on main branch (PR pipelines skip publishing).
+  # ────────────────────────────────────────────────────────────────────────────
+  allure-report:
+    name: Publish Allure Report → GitHub Pages
+    runs-on: ubuntu-latest
+    needs: test
+    if: always() && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: write   # peaceiris/actions-gh-pages needs push access
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # merge-multiple: true flattens all allure-results-* artifacts into one
+      # directory. Allure result files use UUID-based names so collisions are
+      # extremely unlikely even across matrix legs.
+      - name: Download all Allure results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          merge-multiple: true
+          path: allure-results
+
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline
+
+      # Guard against the (unlikely) case where every leg failed before writing
+      # any results file — produce a minimal placeholder instead of a red step.
+      - name: Generate Allure report
+        run: |
+          if [ -d allure-results ] && [ -n "$(ls -A allure-results 2>/dev/null)" ]; then
+            allure generate allure-results --clean -o allure-report
+            echo "✅  Allure report generated from $(ls allure-results | wc -l) result files."
+          else
+            echo "⚠️  No Allure results found — creating placeholder report."
+            mkdir -p allure-report
+            cat <<'HTML' > allure-report/index.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head><meta charset="UTF-8"><title>No Test Results</title></head>
+          <body style="font-family:sans-serif;padding:2rem">
+            <h1>⚠️  No test results available for this run.</h1>
+            <p>All test jobs may have failed before producing Allure output.</p>
+          </body>
+          </html>
+          HTML
+          fi
+
+      # Publishes to the gh-pages branch; enable GitHub Pages in repo Settings
+      # → Pages → Source: Deploy from branch → gh-pages → / (root).
+      - name: Deploy Allure report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir:    ./allure-report
+          publish_branch: gh-pages
+          commit_message: "ci: publish Allure report for ${{ github.sha }}"
