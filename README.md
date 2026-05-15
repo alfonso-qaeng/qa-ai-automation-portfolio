@@ -232,6 +232,51 @@ Model:  claude-sonnet-4-20250514   ·   Duration: 3241ms
 
 The full analysis is saved as structured JSON in `reports/ai-analysis/` — ready to be imported into Jira, Confluence, or any test management tool.
 
+### Real output example from a fintech user story:
+
+```gherkin
+Scenario: Successful transfer between accounts
+  Given the user is logged in to the financial platform
+  And the user has an account balance of $5,000.00
+  When the user enters a valid destination account number "1234567890"
+  And the user enters an amount of "$500.00"
+  And the user clicks "Confirm Transfer"
+  Then the transfer executes successfully
+  And the user sees a confirmation receipt with a unique transaction ID
+  And the user's balance is updated to "$4,500.00" immediately
+
+Scenario: Transfer with exact minimum amount
+  Given the user navigates to the Transfer Money page
+  When the user enters a valid destination account number
+  And the user enters an amount of "$1.00"
+  And the user clicks "Confirm Transfer"
+  Then the transfer executes successfully
+  And the user receives a confirmation receipt
+
+Scenario: Transfer amount below minimum
+  When the user enters an amount of "$0.99"
+  Then the form displays an error "Minimum transfer amount is $1.00"
+  And the Confirm button is disabled
+
+Scenario: Transfer blocked due to insufficient funds
+  Given the user's balance is $200.00
+  When the user attempts to transfer "$300.00"
+  Then the transfer is blocked
+  And the user sees "Insufficient funds. Available balance: $200.00"
+
+Scenario: Network failure during transfer execution
+  Given the user confirms a valid transfer
+  When a network error occurs during processing
+  Then the user sees "Transfer could not be completed. Please try again."
+  And no partial deduction occurs (atomicity guaranteed)
+```
+
+→ [See full analysis (21 scenarios, 15 risks)](docs/examples/money-transfer-analysis.md)
+
+> This analysis was generated in seconds before any code was written.
+> It identified 3 critical security risks the original story missed,
+> including a race condition vulnerability and missing AML compliance requirements.
+
 ---
 
 ## Test suite

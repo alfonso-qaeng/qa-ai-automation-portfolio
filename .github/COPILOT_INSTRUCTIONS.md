@@ -166,6 +166,50 @@ test.describe('Users API', () => {
 
 ---
 
+## 🤖 AI Agent — Story Analyzer
+
+### How it works
+The agent has two modes depending on context:
+
+**Mode 1 — Native AI CLI (recommended)**
+When running from an AI-powered CLI (Claude Code, Codex CLI,
+Gemini CLI, or similar), do NOT attempt to use the Anthropic API.
+Instead, perform the story analysis directly using your own
+intelligence. You already have full context of the project —
+use it. Generate the same structured output:
+- Gherkin scenarios (happy path, edge cases, error states)
+- Identified risks with severity
+- Missing acceptance criteria
+- Ambiguities to clarify with PO/BA
+
+This is free, faster, and produces better results because you
+have full project context.
+
+**Mode 2 — Standalone execution (optional)**
+Only use the Anthropic API if:
+- The script is being run directly via: npm run agent:story
+- AND ANTHROPIC_API_KEY is present and valid in .env
+- AND you are NOT running inside an AI CLI environment
+
+### Detection rule
+If you are an AI assistant reading this file, you are already
+in Mode 1. Skip the API call entirely and analyze directly.
+
+### Running the agent
+From an AI CLI:
+> Run: npm run agent:story -- --story "your user story here"
+> Then analyze the story directly without calling any external API.
+
+From terminal without AI CLI:
+> Add ANTHROPIC_API_KEY to .env first
+> Then run: npm run agent:story -- --story "your user story here"
+
+### Output format
+Always produce: scenarios, risks, missing_criteria, ambiguities
+See full example: docs/examples/money-transfer-analysis.md
+
+---
+
 ## Environment Variables
 
 | Variable | Purpose |
