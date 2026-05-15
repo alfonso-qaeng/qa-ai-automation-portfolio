@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Auth state (contains session tokens — never commit)
+.auth/
+
+# Test reports & artifacts
+allure-results/
+allure-report/
+test-results/
+playwright-report/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
